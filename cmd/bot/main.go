@@ -12,15 +12,11 @@ import (
 	"github.com/indienSs/tg-bot-go/internal/repository/postgres"
 	"github.com/indienSs/tg-bot-go/internal/repository/redis"
 	"github.com/indienSs/tg-bot-go/internal/service"
-	"github.com/joho/godotenv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-        log.Fatalf("No .env file found or error loading .env: %v", err)
-    }
 
 	cfg := config.Config{
 		TelegramToken: os.Getenv("TELEGRAM_TOKEN"),
