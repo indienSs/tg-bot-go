@@ -5,8 +5,10 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
+	"github.com/indienSs/tg-bot-go/internal/clients/openai"
 	"github.com/indienSs/tg-bot-go/internal/config"
 	"github.com/indienSs/tg-bot-go/internal/handler"
 	"github.com/indienSs/tg-bot-go/internal/repository/postgres"
@@ -17,6 +19,22 @@ import (
 )
 
 func main() {
+
+	redisDb, err := strconv.Atoi(os.Getenv("REDIS_DB"))
+	if err != nil {
+		log.Fatalf("Failed to get redis_db env: %v", err)
+	}
+
+	openaiTemp64, err := strconv.ParseFloat(os.Getenv("OPENAI_TEMPERATURE"), 32)
+	if err != nil {
+		log.Fatalf("Failed to get openai_temperature env: %v", err)
+	}
+	openaiTemp := float32(openaiTemp64)
+
+	openaiTokens, err := strconv.Atoi(os.Getenv("OPENAI_MAX_TOKENS"))
+	if err != nil {
+		log.Fatalf("Failed to get openai_max_tokens env: %v", err)
+	}
 
 	cfg := config.Config{
 		TelegramToken: os.Getenv("TELEGRAM_TOKEN"),
@@ -31,8 +49,14 @@ func main() {
 		Redis: config.RedisConfig{
 			Addr:     os.Getenv("REDIS_ADDR"),
 			Password: os.Getenv("REDIS_PASSWORD"),
-			DB:       0,
+			DB:       redisDb,
 		},
+		OpenAI: config.OpenAIConfig{
+            APIKey:      os.Getenv("OPENAI_API_KEY"),
+            Model:       os.Getenv("OPENAI_MODEL"),
+            Temperature: openaiTemp,
+            MaxTokens:   openaiTokens,
+        },
 	}
 
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
@@ -55,7 +79,13 @@ func main() {
 	}
 	defer rdb.Close()
 
-	svc := service.New(pg, rdb)
+	aiClient := openai.New(cfg.OpenAI.APIKey, openai.OpenAIConfig{
+        Model:       cfg.OpenAI.Model,
+        Temperature: cfg.OpenAI.Temperature,
+        MaxTokens:   cfg.OpenAI.MaxTokens,
+    })
+
+	svc := service.New(pg, rdb, aiClient)
 
 	h := handler.New(bot, svc)
 

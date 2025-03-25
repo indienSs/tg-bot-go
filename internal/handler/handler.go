@@ -37,9 +37,7 @@ func (h *Handler) HandleUpdates(ctx context.Context) {
 			}
 
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-			
-			// Обрабатываем сообщение
-			err := h.service.ProcessMessage(
+			response, err := h.service.ProcessMessage(
 				ctx,
 				update.Message.From.ID,
 				update.Message.From.UserName,
@@ -51,8 +49,10 @@ func (h *Handler) HandleUpdates(ctx context.Context) {
 			if err != nil {
 				log.Printf("Failed to process message: %v", err)
 				msg.Text = "Произошла ошибка при обработке сообщения"
+			} else if response == "" {
+				continue
 			} else {
-				msg.Text = "Сообщение получено и сохранено!"
+				msg.Text = response
 			}
 
 			if _, err := h.bot.Send(msg); err != nil {
